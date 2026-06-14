@@ -705,7 +705,7 @@ st.set_page_config(
 )
 
 st.title(BRAND_NAME)
-st.caption("Proyección fiscal 2025 para profesionales que cobran del exterior · Ganancias · Monotributo · Bienes Personales")
+st.caption(f"Proyección fiscal {datetime.date.today().year} para profesionales que cobran del exterior · Ganancias · Monotributo · Bienes Personales")
 st.divider()
 
 col_form, col_res = st.columns([1, 1], gap="large")
@@ -780,17 +780,23 @@ r = calcular_todo(**inp)
 mono_gana = r["total_mono"] <= r["total_ri"]
 
 with col_res:
-    st.subheader("Proyección fiscal 2025")
+    st.subheader("¿Cuánto te quedás?")
 
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Ingreso bruto", ars_m(r["total_bruto"]))
-    m2.metric("Carga fiscal",  ars_m(r["total_mono"]))
-    delta_th = round(r["takehome_pct"] - 70, 1)
-    m3.metric("Take-home",     f"{r['takehome_pct']:.1f}%",
-              delta=f"{delta_th:+.1f}pp vs relación de dependencia",
-              delta_color="normal")
     neto_usd_mes = r["neto"] / 12 / inp["tc"] if inp["tc"] > 0 else 0
-    m4.metric("Neto/mes USD", usd_fmt(neto_usd_mes))
+    neto_mes_ars = r["neto"] / 12
+    delta_th     = round(r["takehome_pct"] - 70, 1)
+    delta_sign   = "+" if delta_th >= 0 else ""
+
+    st.markdown(
+        f"<div style='background:#0f172a;border-radius:12px;padding:18px 22px;margin-bottom:4px'>"
+        f"<div style='color:#64748b;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px'>Neto mensual estimado</div>"
+        f"<div style='color:white;font-size:2.2em;font-weight:800;letter-spacing:-1px;line-height:1'>USD {neto_usd_mes:,.0f}</div>"
+        f"<div style='color:#475569;font-size:13px;margin-top:5px'>{ars(neto_mes_ars)} &nbsp;·&nbsp; "
+        f"<span style='color:#4ade80;font-weight:600'>Take-home {r['takehome_pct']:.1f}%</span>"
+        f" &nbsp;<span style='color:#64748b;font-size:11px'>({delta_sign}{delta_th}pp vs relación de dependencia)</span></div>"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
 
     # ---- DONUT: distribución fiscal ----
     if r["total_bruto"] > 0:
@@ -848,24 +854,6 @@ with col_res:
         c1, c2 = st.columns(2)
         c1.write(f"**{k}**")
         c2.write(v)
-
-    st.markdown("---")
-
-    neto_mes_ars = r["neto"] / 12
-    neto_mes_usd = neto_mes_ars / inp["tc"] if inp["tc"] > 0 else 0
-    st.markdown(
-        f"<div style='display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px'>"
-        f"<div style='background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:10px 14px'>"
-        f"<div style='font-size:0.75em;color:#166534;font-weight:600;margin-bottom:2px'>NETO MENSUAL ARS</div>"
-        f"<div style='font-size:1.15em;font-weight:700;color:#15803d'>{ars(neto_mes_ars)}</div>"
-        f"</div>"
-        f"<div style='background:#eff6ff;border:1px solid #93c5fd;border-radius:8px;padding:10px 14px'>"
-        f"<div style='font-size:0.75em;color:#1d4ed8;font-weight:600;margin-bottom:2px'>NETO MENSUAL USD</div>"
-        f"<div style='font-size:1.15em;font-weight:700;color:#1d4ed8'>USD {neto_mes_usd:,.0f}</div>"
-        f"</div>"
-        f"</div>",
-        unsafe_allow_html=True,
-    )
 
     st.markdown("---")
 
