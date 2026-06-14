@@ -784,6 +784,7 @@ with col_res:
     neto_mes_ars = r["neto"] / 12
     delta_th     = round(r["takehome_pct"] - 70, 1)
     delta_sign   = "+" if delta_th >= 0 else ""
+    carga_pct    = round(100 - r["takehome_pct"], 1)
 
     st.markdown(
         # Card principal oscura
@@ -810,7 +811,7 @@ with col_res:
         f"  </div>"
         f"  <div>"
         f"    <div style='color:#475569;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px'>Carga fiscal / año</div>"
-        f"    <div style='color:#f87171;font-size:1em;font-weight:700'>{ars(r['total_mono'])} <span style='font-size:11px;color:#64748b;font-weight:400'>({100-r[\"takehome_pct\"]:.1f}%)</span></div>"
+        f"    <div style='color:#f87171;font-size:1em;font-weight:700'>{ars(r['total_mono'])} <span style='font-size:11px;color:#64748b;font-weight:400'>({carga_pct:.1f}%)</span></div>"
         f"  </div>"
         f"</div>"
 
