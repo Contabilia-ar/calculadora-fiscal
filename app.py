@@ -13,6 +13,8 @@ import datetime
 import requests
 import plotly.graph_objects as go
 
+YEAR = datetime.date.today().year
+
 # ============================================================
 # CONSTANTES FISCALES 2025 (aproximadas — se actualizan trimestralmente)
 # ============================================================
@@ -224,7 +226,7 @@ class ReportePDF(FPDF):
         self.set_text_color(148, 163, 184)
         self.multi_cell(
             0, 4,
-            "Valores estimados con parámetros fiscales aproximados 2025 (se actualizan trimestralmente). "
+            f"Valores estimados con parámetros fiscales aproximados {YEAR} (se actualizan trimestralmente). "
             "No constituye asesoramiento contable, impositivo ni legal. Consultá con un contador habilitado. "
             f"Página {self.page_no()} | {self.BRAND}",
             align="C",
@@ -261,7 +263,7 @@ def generar_pdf(inp: dict, r: dict) -> bytes:
     # ----- TITULO -----
     pdf.set_font("Helvetica", "B", 18)
     pdf.set_text_color(15, 23, 42)
-    pdf.cell(0, 10, "Reporte de Proyección Fiscal 2025", ln=True)
+    pdf.cell(0, 10, f"Reporte de Proyección Fiscal {YEAR}", ln=True)
     pdf.set_font("Helvetica", "", 11)
     pdf.set_text_color(71, 85, 105)
     pdf.cell(0, 7, "Profesional independiente / Freelancer cobrador del exterior", ln=True)
@@ -364,7 +366,7 @@ def generar_pdf(inp: dict, r: dict) -> bytes:
     bp_filas = [
         ("Activos en el exterior (en ARS al TC utilizado)", ars(r["ext_ars"])),
         ("Otros bienes en Argentina", ars(inp["bienes_loc"])),
-        ("Mínimo no imponible BP (aprox. 2025)", ars(BP_MNI)),
+        (f"Mínimo no imponible BP (aprox. {YEAR})", ars(BP_MNI)),
         ("Impuesto estimado Bienes Personales", ars(r["bp"])),
     ]
     for i, (l, v) in enumerate(bp_filas):
@@ -804,7 +806,7 @@ with col_res:
         f"<div style='border-top:1px solid #1e293b;margin-bottom:12px'></div>"
 
         # Ingreso bruto y carga fiscal en dos columnas
-        f"<div style='display:grid;grid-template-columns:1fr 1fr;gap:12px'>"
+        f"<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px'>"
         f"  <div>"
         f"    <div style='color:#475569;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px'>Ingreso bruto / año</div>"
         f"    <div style='color:#94a3b8;font-size:1em;font-weight:700'>{ars(r['total_bruto'])}</div>"
@@ -970,7 +972,7 @@ st.markdown(
     "y no perder vencimientos requiere seguimiento mensual. Eso es lo que ofrecemos."
     "</div>"
 
-    "<div style='display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px'>"
+    "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:16px'>"
 
     "<div>"
     "<div style='color:#60a5fa;font-size:0.78em;font-weight:700;letter-spacing:.05em;margin-bottom:6px'>INCLUYE</div>"
@@ -1021,7 +1023,7 @@ with col_pdf_desc:
         "<div style='display:flex;gap:10px;align-items:flex-start'><span style='color:#22c55e;font-size:16px;flex-shrink:0'>✓</span><span><b>Neto mensual en ARS y USD</b> — take-home rate efectivo</span></div>"
         "<div style='display:flex;gap:10px;align-items:flex-start'><span style='color:#22c55e;font-size:16px;flex-shrink:0'>✓</span><span><b>6 próximos pasos</b> para regularizar tu situación ante AFIP</span></div>"
         "<div style='display:flex;gap:10px;align-items:flex-start'><span style='color:#22c55e;font-size:16px;flex-shrink:0'>✓</span><span><b>Hoja para tu contador</b> — datos listos para la primera reunión</span></div>"
-        "<div style='display:flex;gap:10px;align-items:flex-start'><span style='color:#22c55e;font-size:16px;flex-shrink:0'>✓</span><span><b>Calendario fiscal 2025</b> — Monotributo · Ganancias · Bienes Personales</span></div>"
+        f"<div style='display:flex;gap:10px;align-items:flex-start'><span style='color:#22c55e;font-size:16px;flex-shrink:0'>✓</span><span><b>Calendario fiscal {YEAR}</b> — Monotributo · Ganancias · Bienes Personales</span></div>"
         "</div>",
         unsafe_allow_html=True,
     )
@@ -1067,7 +1069,7 @@ if generar:
         st.error("Código inválido. Verificá tu compra o escribinos a hola@contabilia.ar")
 
 st.caption(
-    "Valores aproximados basados en parámetros fiscales 2025. "
+    f"Valores aproximados basados en parámetros fiscales {YEAR}. "
     "No constituye asesoramiento contable, impositivo ni legal. "
     "Consultá con un contador habilitado."
 )
