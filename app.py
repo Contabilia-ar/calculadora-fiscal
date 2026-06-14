@@ -805,25 +805,34 @@ with col_res:
             d_labels.append("Bienes Pers."); d_values.append(r["bp"]); d_colors.append("#a78bfa")
 
         fig = go.Figure(data=[go.Pie(
-            labels=d_labels, values=d_values, hole=0.62,
-            marker=dict(colors=d_colors, line=dict(color="white", width=2)),
-            textinfo="label+percent", textfont=dict(size=10),
-            insidetextorientation="horizontal",
+            labels=d_labels, values=d_values, hole=0.65,
+            marker=dict(colors=d_colors, line=dict(color="white", width=3)),
+            textinfo="none",
+            hovertemplate="<b>%{label}</b><br>%{value:,.0f} ARS<br>%{percent}<extra></extra>",
             sort=False,
         )])
         fig.add_annotation(
-            text=f"<b>{r['takehome_pct']:.0f}%</b><br>take-home",
+            text=f"<b>{r['takehome_pct']:.0f}%</b><br><span style='font-size:11px'>take-home</span>",
             x=0.5, y=0.5, showarrow=False,
-            font=dict(size=15, color="#0f172a"), align="center",
+            font=dict(size=18, color="#0f172a"), align="center",
         )
+        # Leyenda manual como fila de chips debajo
+        legend_html = "".join([
+            f"<span style='display:inline-flex;align-items:center;gap:4px;margin-right:12px;font-size:11px;color:#475569'>"
+            f"<span style='width:10px;height:10px;border-radius:2px;background:{c};display:inline-block'></span>{l}</span>"
+            for l, c in zip(d_labels, d_colors)
+        ])
         fig.update_layout(
-            showlegend=True,
-            legend=dict(orientation="h", yanchor="bottom", y=-0.25, xanchor="center", x=0.5, font=dict(size=10)),
-            margin=dict(t=8, b=8, l=8, r=8),
-            height=230,
+            showlegend=False,
+            margin=dict(t=4, b=4, l=4, r=4),
+            height=200,
             paper_bgcolor="rgba(0,0,0,0)",
         )
         st.plotly_chart(fig, use_container_width=True)
+        st.markdown(
+            f"<div style='text-align:center;margin-top:-8px;margin-bottom:4px'>{legend_html}</div>",
+            unsafe_allow_html=True,
+        )
 
     st.markdown("---")
 
