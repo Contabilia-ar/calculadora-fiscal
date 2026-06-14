@@ -780,20 +780,40 @@ r = calcular_todo(**inp)
 mono_gana = r["total_mono"] <= r["total_ri"]
 
 with col_res:
-    st.subheader("¿Cuánto te quedás?")
-
     neto_usd_mes = r["neto"] / 12 / inp["tc"] if inp["tc"] > 0 else 0
     neto_mes_ars = r["neto"] / 12
     delta_th     = round(r["takehome_pct"] - 70, 1)
     delta_sign   = "+" if delta_th >= 0 else ""
 
     st.markdown(
-        f"<div style='background:#0f172a;border-radius:12px;padding:18px 22px;margin-bottom:4px'>"
-        f"<div style='color:#64748b;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px'>Neto mensual estimado</div>"
-        f"<div style='color:white;font-size:2.2em;font-weight:800;letter-spacing:-1px;line-height:1'>USD {neto_usd_mes:,.0f}</div>"
-        f"<div style='color:#475569;font-size:13px;margin-top:5px'>{ars(neto_mes_ars)} &nbsp;·&nbsp; "
-        f"<span style='color:#4ade80;font-weight:600'>Take-home {r['takehome_pct']:.1f}%</span>"
-        f" &nbsp;<span style='color:#64748b;font-size:11px'>({delta_sign}{delta_th}pp vs relación de dependencia)</span></div>"
+        # Card principal oscura
+        f"<div style='background:#0f172a;border-radius:12px;padding:18px 22px 14px;margin-bottom:4px'>"
+
+        # Neto mensual — el número protagonista
+        f"<div style='color:#64748b;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px'>Neto mensual estimado</div>"
+        f"<div style='display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:2px'>"
+        f"  <span style='color:white;font-size:2em;font-weight:800;letter-spacing:-1px'>USD {neto_usd_mes:,.0f}</span>"
+        f"  <span style='color:#475569;font-size:14px'>{ars(neto_mes_ars)}</span>"
+        f"</div>"
+        f"<div style='color:#4ade80;font-size:12px;font-weight:600;margin-bottom:14px'>"
+        f"Take-home {r['takehome_pct']:.1f}% &nbsp;<span style='color:#475569;font-weight:400'>({delta_sign}{delta_th}pp vs relación de dependencia)</span>"
+        f"</div>"
+
+        # Separador
+        f"<div style='border-top:1px solid #1e293b;margin-bottom:12px'></div>"
+
+        # Ingreso bruto y carga fiscal en dos columnas
+        f"<div style='display:grid;grid-template-columns:1fr 1fr;gap:12px'>"
+        f"  <div>"
+        f"    <div style='color:#475569;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px'>Ingreso bruto / año</div>"
+        f"    <div style='color:#94a3b8;font-size:1em;font-weight:700'>{ars(r['total_bruto'])}</div>"
+        f"  </div>"
+        f"  <div>"
+        f"    <div style='color:#475569;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px'>Carga fiscal / año</div>"
+        f"    <div style='color:#f87171;font-size:1em;font-weight:700'>{ars(r['total_mono'])} <span style='font-size:11px;color:#64748b;font-weight:400'>({100-r[\"takehome_pct\"]:.1f}%)</span></div>"
+        f"  </div>"
+        f"</div>"
+
         f"</div>",
         unsafe_allow_html=True,
     )
