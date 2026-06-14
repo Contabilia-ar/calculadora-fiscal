@@ -147,9 +147,9 @@ def ars_m(n: float) -> str:
 
 def usd_fmt(n: float) -> str:
     """Formato compacto USD para widgets de métrica — evita truncado en 4 columnas."""
-    if n >= 10_000:
-        return f"USD {n/1_000:.0f}k"
-    return f"USD {int(round(n)):,}"
+    if n >= 1_000:
+        return f"USD {n/1_000:.1f}k"
+    return f"USD {int(round(n))}"
 
 # ============================================================
 # TIPO DE CAMBIO BANCO NACION (automatico)
