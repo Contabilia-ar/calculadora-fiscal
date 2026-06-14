@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "calculadora-contabilia",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "app.py", "--server.port", "8501"],
+      "port": 8501,
+      "cwd": "C:\\Users\\R5 2600\\Contabilia\\calculadora"
+    }
+  ]
+}
