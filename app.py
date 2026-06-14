@@ -11,6 +11,7 @@ import streamlit as st
 from fpdf import FPDF
 import datetime
 import requests
+import plotly.graph_objects as go
 
 # ============================================================
 # CONSTANTES FISCALES 2025 (aproximadas — se actualizan trimestralmente)
@@ -110,6 +111,16 @@ def calcular_todo(ing_usd, tc, ing_local_mes, conyuge, hijos,
     neto         = total_bruto - total_mono
     takehome_pct = (neto / total_bruto * 100) if total_bruto > 0 else 0
 
+    # Margen antes de saltar de categoría (solo ingresos locales)
+    cat_idx = next((i for i, (c, _, _) in enumerate(MONO_SERVICIOS) if c == cat), None)
+    if cat_idx is not None and cat_idx + 1 < len(MONO_SERVICIOS):
+        _, tope_sig, cuota_sig = MONO_SERVICIOS[cat_idx + 1]
+        margen_cat = tope_sig - loc_anual
+        cat_sig = MONO_SERVICIOS[cat_idx + 1][0]
+        pct_cat = loc_anual / tope_cat if tope_cat else 0
+    else:
+        margen_cat, cat_sig, cuota_sig, pct_cat = 0, None, None, 1.0
+
     return dict(
         ext_anual=ext_anual, loc_anual=loc_anual, total_bruto=total_bruto,
         ded_base=ded_base, ded_con=ded_con, ded_hij=ded_hij, ded_total=ded_total,
@@ -119,6 +130,7 @@ def calcular_todo(ing_usd, tc, ing_local_mes, conyuge, hijos,
         total_mono=total_mono, total_ri=total_ri,
         imp_gan_ri=imp_gan_ri, gastos_anual=gastos_anual,
         neto=neto, takehome_pct=takehome_pct,
+        margen_cat=margen_cat, cat_sig=cat_sig, cuota_sig=cuota_sig, pct_cat=pct_cat,
     )
 
 # ============================================================
@@ -132,6 +144,12 @@ def ars_m(n: float) -> str:
     """Formato abreviado en millones para métricas de header."""
     m = n / 1_000_000
     return f"$ {m:.1f}M"
+
+def usd_fmt(n: float) -> str:
+    """Formato compacto USD para widgets de métrica — evita truncado en 4 columnas."""
+    if n >= 10_000:
+        return f"USD {n/1_000:.0f}k"
+    return f"USD {int(round(n)):,}"
 
 # ============================================================
 # TIPO DE CAMBIO BANCO NACION (automatico)
@@ -769,10 +787,43 @@ with col_res:
     m2.metric("Carga fiscal",  ars_m(r["total_mono"]))
     delta_th = round(r["takehome_pct"] - 70, 1)
     m3.metric("Take-home",     f"{r['takehome_pct']:.1f}%",
-              delta=f"{delta_th:+.1f}pp vs. relación de dependencia",
+              delta=f"{delta_th:+.1f}pp vs relación de dependencia",
               delta_color="normal")
     neto_usd_mes = r["neto"] / 12 / inp["tc"] if inp["tc"] > 0 else 0
-    m4.metric("Neto/mes USD",  f"USD {neto_usd_mes:,.0f}")
+    m4.metric("Neto/mes USD", usd_fmt(neto_usd_mes))
+
+    # ---- DONUT: distribución fiscal ----
+    if r["total_bruto"] > 0:
+        d_labels, d_values, d_colors = [], [], []
+        if r["neto"] > 0:
+            d_labels.append("Neto"); d_values.append(r["neto"]); d_colors.append("#22c55e")
+        if r["imp_gan"] > 0:
+            d_labels.append("Ganancias"); d_values.append(r["imp_gan"]); d_colors.append("#f87171")
+        if r["cuota_anual"] > 0:
+            d_labels.append("Monotributo"); d_values.append(r["cuota_anual"]); d_colors.append("#60a5fa")
+        if r["bp"] > 0:
+            d_labels.append("Bienes Pers."); d_values.append(r["bp"]); d_colors.append("#a78bfa")
+
+        fig = go.Figure(data=[go.Pie(
+            labels=d_labels, values=d_values, hole=0.62,
+            marker=dict(colors=d_colors, line=dict(color="white", width=2)),
+            textinfo="label+percent", textfont=dict(size=10),
+            insidetextorientation="horizontal",
+            sort=False,
+        )])
+        fig.add_annotation(
+            text=f"<b>{r['takehome_pct']:.0f}%</b><br>take-home",
+            x=0.5, y=0.5, showarrow=False,
+            font=dict(size=15, color="#0f172a"), align="center",
+        )
+        fig.update_layout(
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=-0.25, xanchor="center", x=0.5, font=dict(size=10)),
+            margin=dict(t=8, b=8, l=8, r=8),
+            height=230,
+            paper_bgcolor="rgba(0,0,0,0)",
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
     st.markdown("---")
 
@@ -831,6 +882,31 @@ with col_res:
         st.warning(f"**Evaluar RI** — potencial ahorro: {ahorro}/año con tus gastos actuales")
 
     st.caption("Factura E = cobro del exterior. No suma al tope de Monotributo.")
+
+    # ---- ALERTA DE LÍMITE DE CATEGORÍA ----
+    if r["cat"]:
+        if r["loc_anual"] == 0:
+            st.info(
+                f"**Solo cobrás del exterior (Factura E):** quedás en Categoría **{r['cat']}** "
+                f"sin importar cuánto facturés en USD. "
+                f"Podés sumar hasta **{ars(r['tope_cat'])}** de ingresos locales antes de subir de categoría."
+            )
+        else:
+            pct = r["pct_cat"]
+            st.progress(min(pct, 1.0), text=f"Ingresos locales: {pct*100:.0f}% del tope de Cat. {r['cat']}")
+            if r["cat_sig"]:
+                margen_usd = r["margen_cat"] / inp["tc"] if inp["tc"] > 0 else 0
+                extra_cuota = r["cuota_sig"] - r["cuota_cat"] if r["cuota_sig"] else 0
+                if pct >= 0.85:
+                    st.warning(
+                        f"**Atención:** te quedan solo **{ars(r['margen_cat'])}/año** de margen local "
+                        f"antes de pasar a Cat. {r['cat_sig']} (+{ars(extra_cuota)}/mes de cuota)."
+                    )
+                else:
+                    st.caption(
+                        f"Margen: **{ars(r['margen_cat'])}/año** (≈ USD {margen_usd:,.0f}/mes) "
+                        f"de ingresos locales antes de pasar a Cat. {r['cat_sig']} (+{ars(extra_cuota)}/mes de cuota)."
+                    )
 
     mono_c = "#16a34a" if mono_gana else "#b45309"
     ri_c   = "#b45309" if mono_gana else "#16a34a"
@@ -915,35 +991,40 @@ st.markdown(
 
 st.divider()
 
-col_pdf_desc, col_pdf_compra = st.columns([3, 1])
+col_pdf_desc, col_pdf_compra = st.columns([3, 2])
 
 with col_pdf_desc:
-    st.subheader("Descargar reporte PDF")
-    st.write("El reporte incluye:")
+    st.subheader("Descargá tu reporte personalizado")
+    st.caption("Generado con tus datos — listo para compartir con tu contador")
     st.markdown(
-        "**Liquidación fiscal completa**  \n"
-        "- Cálculo de Ganancias con deducciones personalizadas  \n"
-        "- Categoría de Monotributo y cuota mensual exacta  \n"
-        "- Estimación de Bienes Personales  \n"
-        "\n"
-        "**Análisis y recomendación**  \n"
-        "- Comparativa Monotributo vs. Responsable Inscripto  \n"
-        "- Recomendación personalizada con ahorro estimado  \n"
-        "- Ingreso neto mensual en ARS y USD  \n"
-        "\n"
-        "**Guía práctica para empezar**  \n"
-        "- 6 próximos pasos para regularizar tu situación  \n"
-        "- Hoja de datos lista para compartir con tu contador  \n"
-        "- Calendario fiscal con vencimientos clave 2025"
+        "<div style='display:flex;flex-direction:column;gap:6px;margin-top:8px'>"
+        "<div style='display:flex;gap:10px;align-items:flex-start'><span style='color:#22c55e;font-size:16px;flex-shrink:0'>✓</span><span><b>Liquidación completa</b> — Ganancias · Monotributo · Bienes Personales con tus deducciones</span></div>"
+        "<div style='display:flex;gap:10px;align-items:flex-start'><span style='color:#22c55e;font-size:16px;flex-shrink:0'>✓</span><span><b>Comparativa Mono vs RI</b> con ahorro estimado en pesos</span></div>"
+        "<div style='display:flex;gap:10px;align-items:flex-start'><span style='color:#22c55e;font-size:16px;flex-shrink:0'>✓</span><span><b>Neto mensual en ARS y USD</b> — take-home rate efectivo</span></div>"
+        "<div style='display:flex;gap:10px;align-items:flex-start'><span style='color:#22c55e;font-size:16px;flex-shrink:0'>✓</span><span><b>6 próximos pasos</b> para regularizar tu situación ante AFIP</span></div>"
+        "<div style='display:flex;gap:10px;align-items:flex-start'><span style='color:#22c55e;font-size:16px;flex-shrink:0'>✓</span><span><b>Hoja para tu contador</b> — datos listos para la primera reunión</span></div>"
+        "<div style='display:flex;gap:10px;align-items:flex-start'><span style='color:#22c55e;font-size:16px;flex-shrink:0'>✓</span><span><b>Calendario fiscal 2025</b> — Monotributo · Ganancias · Bienes Personales</span></div>"
+        "</div>",
+        unsafe_allow_html=True,
     )
 
 with col_pdf_compra:
-    st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
-    st.info("**¿No tenés código?**\n\nComprá tu acceso en **contabilia.ar**")
+    st.markdown(
+        "<div style='background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;"
+        "padding:20px;text-align:center;margin-top:4px'>"
+        "<div style='font-size:32px;margin-bottom:8px'>📄</div>"
+        "<div style='font-weight:800;color:#1e40af;font-size:1.05em;margin-bottom:4px'>Reporte PDF completo</div>"
+        "<div style='font-size:13px;color:#3b82f6;margin-bottom:12px'>Pago único · Sin suscripción</div>"
+        "<div style='font-size:28px;font-weight:800;color:#0f172a;margin-bottom:4px'>USD 4.99</div>"
+        "<div style='font-size:11px;color:#64748b'>Acceso inmediato por email</div>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+    st.info("**¿No tenés código?**  \nComprá tu acceso en **contabilia.ar**")
 
 col_pwd, col_btn = st.columns([2, 1])
 with col_pwd:
-    pwd = st.text_input("Código de acceso", type="password", placeholder="Ingresá tu código")
+    pwd = st.text_input("Código de acceso", type="password", placeholder="Ej: COMPRA001")
 with col_btn:
     st.write("")
     st.write("")
