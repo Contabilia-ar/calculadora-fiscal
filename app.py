@@ -209,13 +209,30 @@ class ReportePDF(FPDF):
     BRAND = BRAND_NAME
 
     def header(self):
-        self.set_font("Helvetica", "B", 9)
-        self.set_text_color(59, 130, 246)
-        self.cell(130, 7, self.BRAND)
+        y0 = self.get_y()
+
+        # Logo mark: cuadrado azul + "C" blanca
+        self.set_fill_color(37, 99, 235)
+        self.rect(self.l_margin, y0, 5.5, 5.5, style="F")
+        self.set_xy(self.l_margin, y0)
+        self.set_font("Helvetica", "B", 7)
+        self.set_text_color(255, 255, 255)
+        self.cell(5.5, 5.5, "C", align="C")
+
+        # "Contabil" en navy, "IA" en azul
+        self.set_font("Helvetica", "B", 10)
+        self.set_text_color(15, 23, 42)
+        self.cell(21, 5.5, "Contabil", align="L")
+        self.set_text_color(37, 99, 235)
+        self.cell(8, 5.5, "IA", align="L")
+
+        # Fecha alineada a la derecha (se superpone hacia la derecha desde x=20)
+        self.set_xy(self.l_margin, y0)
         self.set_font("Helvetica", "", 8)
         self.set_text_color(148, 163, 184)
-        self.cell(0, 7, f"Generado: {datetime.date.today().strftime('%d/%m/%Y')}", align="R")
-        self.ln(2)
+        self.cell(170, 5.5, f"Generado: {datetime.date.today().strftime('%d/%m/%Y')}", align="R")
+
+        self.set_y(y0 + 7)
         self.set_draw_color(226, 232, 240)
         self.line(20, self.get_y(), 190, self.get_y())
         self.ln(5)
