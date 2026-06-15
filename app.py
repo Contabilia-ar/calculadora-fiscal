@@ -698,7 +698,7 @@ def generar_pdf(inp: dict, r: dict) -> bytes:
     pdf.set_x(24)
     pdf.set_font("Helvetica", "B", 9)
     pdf.set_text_color(37, 99, 235)
-    pdf.cell(0, 5, "Contacto: hola@contabilia.ar", ln=True)
+    pdf.cell(0, 5, "Contacto: hola@contabilia.com.ar", ln=True)
 
     return bytes(pdf.output())
 
@@ -1014,7 +1014,7 @@ st.markdown(
     "</div>"
 
     "<div style='border-top:1px solid #1e293b;padding-top:12px;color:#93c5fd;font-size:0.88em'>"
-    "Contacto: <a href='mailto:hola@contabilia.ar' style='color:white;font-weight:700;text-decoration:none'>hola@contabilia.ar</a>"
+    "Contacto: <a href='mailto:hola@contabilia.com.ar' style='color:white;font-weight:700;text-decoration:none'>hola@contabilia.com.ar</a>"
     " &nbsp;|&nbsp; Respondemos en menos de 24 hs"
     "</div>"
 
@@ -1057,7 +1057,7 @@ with col_pdf_compra:
         "</div>",
         unsafe_allow_html=True,
     )
-    st.info("**¿No tenés código?**  \nComprá tu acceso en **contabilia.ar**")
+    st.info("**¿No tenés código?**  \nComprá tu acceso en **contabilia.com.ar**")
 
 col_pwd, col_btn = st.columns([2, 1])
 with col_pwd:
@@ -1083,7 +1083,7 @@ if generar:
         )
         st.success("¡Listo! Hacé click en el botón para guardar el reporte.")
     else:
-        st.error("Código inválido. Verificá tu compra o escribinos a hola@contabilia.ar")
+        st.error("Código inválido. Verificá tu compra o escribinos a hola@contabilia.com.ar")
 
 st.caption(
     f"Valores aproximados basados en parámetros fiscales {YEAR}. "
